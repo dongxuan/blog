@@ -1,0 +1,490 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>C 语言中的一维数组与指针 | xuan&#39;s blog</title>
+
+  
+
+  
+  <meta name="description" content="数组和指针，是同样的东西吗？
+&amp;nbsp;
+数组和指针都属于数据类型，分别是这么定义的：
+int  array[3];
+int * point;
+&amp;nbsp;
+array 代表一段连续的内存，里面有3个元素，每个元素是int型的
+point是一个指针，在32位平台上，大小为4字节，里面存储着一个内存地址。">
+  
+
+  
+  
+  <meta name="keywords" content="">
+  
+
+  <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+  <meta property="og:title" content="C 语言中的一维数组与指针"/>
+
+  <meta property="og:site_name" content="xuan&#39;s blog"/>
+
+  
+  <meta property="og:image" content="/favicon.ico"/>
+  
+
+  <link href="/favicon.ico" rel="icon">
+  <link rel="alternate" href="/atom.xml" title="xuan&#39;s blog" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+
+<body>
+<div class="blog">
+  <div class="content">
+
+    <header>
+  <div class="site-branding">
+    <h1 class="site-title">
+      <a href="/">xuan&#39;s blog</a>
+    </h1>
+    <p class="site-description"></p>
+  </div>
+  <nav class="site-navigation">
+    <ul>
+      
+        <li><a href="/">首页</a></li>
+      
+        <li><a href="/article">文章</a></li>
+      
+        <li><a href="/technical">技术</a></li>
+      
+        <li><a href="/about">关于</a></li>
+      
+    </ul>
+  </nav>
+</header>
+
+    <main class="site-main posts-loop">
+    <article>
+
+  
+    
+    <h3 class="article-title"><span>C 语言中的一维数组与指针</span></h3>
+    
+  
+
+  <div class="article-top-meta">
+    <span class="posted-on">
+      <a href="/archives/147/" rel="bookmark">
+        <time class="entry-date published" datetime="2013-03-07T13:54:55.000Z">
+          2013-03-07
+        </time>
+      </a>
+    </span>
+  </div>
+
+
+  
+
+  <div class="article-content">
+    <div class="entry">
+      
+        <p><strong>数组和指针，是同样的东西吗？</strong></p>
+<p>&nbsp;</p>
+<p>数组和指针都属于数据类型，分别是这么定义的：</p>
+<p>int  array[3];</p>
+<p>int * point;</p>
+<p>&nbsp;</p>
+<p>array 代表一段连续的内存，里面有3个元素，每个元素是int型的</p>
+<p>point是一个指针，在32位平台上，大小为4字节，里面存储着一个内存地址。</p>
+<a id="more"></a>
+
+<p>看起来这俩哥们没啥联系吗，我们来sizeof一下，这个大家都知道，sizeof(point)的值为4（32位系统）， sizeof(array) 的数值为12 （3 * sizeof(int)）, 这样更加证明了，这俩肯定不是一个东西~</p>
+<p>&nbsp;</p>
+<p><strong>array是什么东西 ?</strong></p>
+<p>&nbsp;</p>
+<p>那好，我们想想，array是什么东西？</p>
+<p>我们写两行代码看看：</p>
+<p>int array[3] = {1, 2, 3};</p>
+<p>int x1 = (int)array;</p>
+<p>int x2 = (int)&amp;array;</p>
+<p>int x3 = (int)&amp;array[0];</p>
+<p>int x4 = *array;</p>
+<p>&nbsp;</p>
+<p>相信稍微有经验的开发者都能很快的说出x1,x2,x3,x4所代表的意思。为了深入理解，</p>
+<p>咱们今天看看汇编代码：</p>
+<p>&nbsp;</p>
+<p><strong>tips</strong></p>
+<p>估计不少朋友一听见汇编语言就头痛，其实本文设计的汇编指令很少，大概讲一下：</p>
+<p>&nbsp;</p>
+<ul>
+<li>mov 。。。这个还是不说了，地球人都知道。</li>
+<li>[] ：可以理解为 * 运算，也就是取值运算。 [eax + 4] 就是将eax寄存器中的数值和4相加，算出一个结果，然后去读取内存中寻找这个地址处的数值（回忆一下，如果a表示一个指针，那么＊a就表示这个指针的所指向内存中存储的数值）。<br>&nbsp;</li>
+</ul>
+<p>&nbsp;</p>
+<ul>
+<li>dword ptr [ebp-14h]：word表示一个机器字，2字节，dword表示一个双字，也就是4字节。如我们上面所说，[]表示取值运算，也就是让cpu去内存某处取值，但cpu怎么知道取几个字节？ dword ptr的意思就是取4字节。</li>
+<li>lea： lea指令相当于&amp;运算，也就是取地址操作。 lea eax,[ebp-14h] 表示将 [ebp – 14h] 的内存地址放入eax中。<br>&nbsp;</li>
+</ul>
+<p>&nbsp;</p>
+<ul>
+<li>[ebp – 4c]: 关于函数调用时的帧栈由于不是这次的重点，所以就不多说了,  大家只要记住 [ebp – x] 代表函数内的临时变量，如：<br>&nbsp;</li>
+</ul>
+<p>int main(int argc, char* argv[]) {</p>
+<p>int x;      //  [ebp – 4h] 表示x</p>
+<p>char y; // [ebp – 8h] 表示y</p>
+<p>return 0;</p>
+<p>}</p>
+<p>&nbsp;</p>
+<ul>
+<li>为了方便对照，本文中C语句在上用蓝色表示，对应的汇编代码在下，用红色表示.<br>&nbsp;</li>
+</ul>
+<p>&nbsp;</p>
+<p>int array[3] = {1, 2, 3};</p>
+<p>&nbsp;</p>
+<p>mov         dword ptr [ebp-14h],1</p>
+<p>mov         dword ptr [ebp-10h],2</p>
+<p>mov         dword ptr [ebp-0Ch],3</p>
+<p>&nbsp;</p>
+<p>[ebp-0ch] 代表的是 array[2].</p>
+<p>[ebp – 10h] 代表的是array[1].</p>
+<p>[ebp – 14h] 代表的是array[0].</p>
+<p>对数组的每个元素初始化。</p>
+<p>&nbsp;</p>
+<p>int x1 = (int)array;</p>
+<p>&nbsp;</p>
+<p>lea         eax,[ebp-14h]</p>
+<p>mov       dword ptr [ebp-20h],eax</p>
+<p>&nbsp;</p>
+<p>第一句表示对 [ebp – 14h] 也就是array[0]取地址，eax中存储</p>
+<p>着array[0]的地址，接着将这个地址放在 [ebp – 20h]， 也就是</p>
+<p>X1中。</p>
+<p>&nbsp;</p>
+<p>int x2 = (int)&amp;array;</p>
+<p>&nbsp;</p>
+<p>lea         eax,[ebp-14h]</p>
+<p>mov       dword ptr [ebp-2Ch],eax</p>
+<p>&nbsp;</p>
+<p>这句的汇编代码几乎和上面的一样，看来对 array取不取地址</p>
+<p>结果一样呀。</p>
+<p>&nbsp;</p>
+<p>int x3 = (int)&amp;array[0];</p>
+<p>&nbsp;</p>
+<p>lea       eax,[ebp-14h]</p>
+<p>mov     dword ptr [ebp-38h],eax</p>
+<p>&nbsp;</p>
+<p>接着呢。。。还是一样， 这句倒在情理之中，正如我们上面分析的一样。</p>
+<p>&nbsp;</p>
+<p>int x4 = *array;</p>
+<p>&nbsp;</p>
+<p>mov         eax,dword ptr [ebp-14h]</p>
+<p>mov         dword ptr [ebp-44h],eax</p>
+<p>&nbsp;</p>
+<p>mov eax,dword ptr [ebp-14h] 表示将 [ebp – 14h]（array[0]） 的值放入到</p>
+<p>eax中，然后将eax的内容放入到x4中，所以x4的内容就是array[0]的值。</p>
+<p>&nbsp;</p>
+<p>好了，清楚了吧， array， &amp;array 以及 &amp;array[0] 完全就是同样的东西，表示数组</p>
+<p>的起始地址，也表示array[0]的地址。*array和 array[0]是同样的东西。</p>
+<p>&nbsp;</p>
+<p>总结A：编译器认为数组名的值，对数组名取地址都表示数组第一个元素的地址。</p>
+<p>&nbsp;</p>
+<p>换句话说，如果标示符p为数组名的时候，p和&amp;p都可以用&amp;p[0]替换。假如你就是</p>
+<p>编译器，可以将上述代码转化为：</p>
+<p>&nbsp;</p>
+<p>int x1 = (int)&amp;array[0];</p>
+<p>int x2 = (int)&amp;array[0];</p>
+<p>int x3 = (int)&amp;array[0];</p>
+<p>int x4 = *(&amp;array[0]);</p>
+<p>&nbsp;</p>
+<p>是不是很清楚了？</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>OK，我们继续下个问题。</p>
+<p>int* point = array;</p>
+<p>&nbsp;</p>
+<p>发生了神马事情？</p>
+<p>&nbsp;</p>
+<p>int* point = array;</p>
+<p>&nbsp;</p>
+<p>lea         eax,[ebp-14h]</p>
+<p>mov       dword ptr [ebp-50h],eax</p>
+<p>&nbsp;</p>
+<p>很明显，ponit中存储着 array[0]的地址。</p>
+<p>&nbsp;</p>
+<p>接下来大家都知道， point[2]和array[2]都表示数组中的第三个元素，是同样的东西。</p>
+<p>当然，表面看起来是相同，但真的相同吗？</p>
+<p>继续让编译器说话，反正我说的话，木有几个人信呀<del>~</del> T_T</p>
+<p>再来看看这两句话：</p>
+<p>&nbsp;</p>
+<p>int x5 = point[2];</p>
+<p>int x6 = array[2];</p>
+<p>&nbsp;</p>
+<p>mov         eax,dword ptr [ebp-50h]</p>
+<p>mov         ecx,dword ptr [eax+8]</p>
+<p>mov         dword ptr [ebp-5Ch],ecx</p>
+<p>&nbsp;</p>
+<p>首先，将point中的数值，放到eax中。Point中的数值是啥？对喽，是array[0]的地址~</p>
+<p>接着， eax + 8 的意思就是array[0]的地址偏移8, （2个int），eax + 8的地址自然</p>
+<p>是array[2]的地址~ 然后将array[2]的内容放到ecx中，现在ecx就是arra[2]了。</p>
+<p>最后，将ecx的数值放入到x5中，over<del>~</del></p>
+<p>&nbsp;</p>
+<p>总结一下， 先读出point中存储的地址，然后加上一个偏移，再读出偏移处的数值就是point[2]</p>
+<p>所做的操作~</p>
+<p>&nbsp;</p>
+<p>int x6 = array[2];</p>
+<p>&nbsp;</p>
+<p>mov         eax,dword ptr [ebp-0Ch]</p>
+<p>mov         dword ptr [ebp-68h],eax</p>
+<p>&nbsp;</p>
+<p>好的，我们再看看x6，咦, 怎么不一样了？ 我可爱的 +8 操作怎么没了？  ebp – 0ch?</p>
+<p>我们回过头来看看第一句：</p>
+<p>&nbsp;</p>
+<p>int array[3] = {1, 2, 3};</p>
+<p>&nbsp;</p>
+<p>mov         dword ptr [ebp-14h],1</p>
+<p>mov         dword ptr [ebp-10h],2</p>
+<p>mov         dword ptr [ebp-0Ch],3</p>
+<p>&nbsp;</p>
+<p>编译器好聪明，直接已经计算好了 array[i]的地址。</p>
+<p>那么我们是不是可以这么理解，array是一个符号常量(ebp - 14)，编译时期已经定下来了。</p>
+<p>&nbsp;</p>
+<p>有点不一样吧~ array[i]的地址编译器已经帮我们算好了，和point[i]不同。</p>
+<p>你可以试着对array做 ++操作， array++ 可是非法的~</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>总结B：如果标示符p为指针， p[i]的计算方法为： *(p + sizeof(T) * i)</p>
+<p>如果p为数组名，p[i]的计算方法为 *(&amp;p[0] + sizeof(T) * i)</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>实际为数组声明为数组</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>好了，扯了这么多了，该说到重点了~</p>
+<p>加入我在a.c 中定义了 int test_array[3] = {1, 2, 3}</p>
+<p>然后我想在b.c中使用这个数组，我该怎么办呢？</p>
+<p>&nbsp;</p>
+<p>需要声明呀~~</p>
+<p>&nbsp;</p>
+<p>extern int test_array[];</p>
+<p>&nbsp;</p>
+<p>这个没问题，表示test_array是别处定义的一个数组。</p>
+<p>那么</p>
+<p>&nbsp;</p>
+<p>extern int test_array[2] 或者extern int test_array[1100]</p>
+<p>对吗？</p>
+<p>&nbsp;</p>
+<p>都对，编译器只要知道这东西是个数组就行了，里面的数字它不关心。（多维数组可不是这样的）</p>
+<p>&nbsp;</p>
+<p>test_array 声明为extern int test_array[]：</p>
+<p>&nbsp;</p>
+<p>我们这么假设，test_array数组存储在417030h处， 那么test_array</p>
+<p>第一个元素的地址就为417030h.</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>int x7 = (int)test_array;</p>
+<p>mov         dword ptr [ebp-74h], offset test_array (417000h)</p>
+<p>&nbsp;</p>
+<p>int x8 = (int)&amp;test_array;</p>
+<p>mov         dword ptr [ebp-80h], offset test_array (417000h)</p>
+<p>&nbsp;</p>
+<p>int x9 = test_array[1];</p>
+<p>mov         eax,dword ptr [test_array+4 (417004h)]</p>
+<p>mov         dword ptr [ebp-8Ch],eax</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>根据总结A， test_array 为数组名的时候， test_array和&amp;test_array</p>
+<p>都会被编译器替换成&amp;test_array[0]，也就是417004h， 所以x7和x8的值相等。</p>
+<p>根据总结Ｂ，test_array[1]的计算方法为： *(&amp;test_array[0] + sizeof(int) * 1),</p>
+<p>也就是dword ptr [test_array+4 (417004h)] 。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>实际为数组却声明为指针</p>
+<p>&nbsp;</p>
+<p>那么，如果我声明为</p>
+<p>&nbsp;</p>
+<p>extern int* test_array;</p>
+<p>&nbsp;</p>
+<p>呢？ 编译下，没有编译错误，貌似也可以吧。</p>
+<p>但当我写</p>
+<p>&nbsp;</p>
+<p>int x7 = (int)test_array;</p>
+<p>int x8 = (int)&amp;test_array;</p>
+<p>int x9 = test_array[1];</p>
+<p>&nbsp;</p>
+<p>VC还是能编译过的，运行第三行却出错了~~</p>
+<p>&nbsp;</p>
+<p>int x7 = (int)test_array;</p>
+<p>mov         eax,dword ptr [test_array (417030h)]</p>
+<p>mov         dword ptr [ebp-74h],eax</p>
+<p>&nbsp;</p>
+<p>int x8 = (int)&amp;test_array;</p>
+<p>mov         dword ptr [ebp-80h],offset test_array (417030h)</p>
+<p>&nbsp;</p>
+<p>看到了吧？ 此时的test_array 和 &amp;test_array已经不一样了。</p>
+<p>&nbsp;</p>
+<p>我们依然假设test_array存储在417030h处，</p>
+<p>那么&amp;test_array 的值就为417030h。思考下test_array</p>
+<p>的值为多少呢？test_array表示地址为417030h处的int数（test_array[0]）。</p>
+<p>x7代表test_array[0]的值，而&amp;test_array代表&amp;test_array[0]</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>int x9 = test_array[1];</p>
+<p>mov         eax,dword ptr [test_array (417030h)]</p>
+<p>mov         ecx,dword ptr [eax+4]</p>
+<p>mov         dword ptr [ebp-8Ch],ecx</p>
+<p>&nbsp;</p>
+<p>这一句自然是有问题的。根据结论B，当test_array为指针时，</p>
+<p>test_array[i]为： *(test_array + sizeof(T) * i), 由上面可知，test_array 等于 test _array[0],</p>
+<p>所以 test_array[1] = *(test_array[0] + 4).</p>
+<p>&nbsp;</p>
+<p>eax的数值表示test_array[0]的值，eax + 4变成了 test_array[0] + 4, 再去读这个地址的数值，</p>
+<p>变成了神马。。。。。程序不崩溃才怪。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>数组作为函数的参数</strong></p>
+<hr>
+<p>于是上面花了很大的篇幅证明，数组和指针是不同的东西，然后我兴高采烈的写下下面的code：</p>
+<p>&nbsp;</p>
+<p>void f（int a[]） {</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>void f (int* p) {</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>函数重载，既然数组和指针不一样，那么，这么写肯定没问题吧？</p>
+<p>可惜编译器毫不留情的给了我一个耳光～ “Y的函数f存在重复定义～”</p>
+<p>啊，原来这俩函数一样呀，数组作为函数的参数，和指针相同？</p>
+<p>是的，请看汇编代码～</p>
+<p>&nbsp;</p>
+<p>int a[2] = {1, 2};</p>
+<p>mov         dword ptr [ebp-18h],1</p>
+<p>mov         dword ptr [ebp-14h],2</p>
+<p>&nbsp;</p>
+<p>f(a);</p>
+<p>lea         eax,[ebp-18h]</p>
+<p>push        eax</p>
+<p>call        @ILT+0(f) (00401005)</p>
+<p>add         esp,4</p>
+<p>&nbsp;</p>
+<p>原来如此呀，函数参数传递的时候，传递的指向数组的指针呀～～</p>
+<p>在C语言中，参数传递都是值传递，拷贝一份实参，即使在函数内部对参数做修改，也是不会影响实参</p>
+<p>原值的，函数没有任何副作用。而在传递数组的时候，选择了传递指针，函数内部对数组元素的修改是</p>
+<p>会影响外部的，有副作用。</p>
+<p>&nbsp;</p>
+<p>为什么这样呢？</p>
+<p>&nbsp;</p>
+<p>废话，这还用想，当然是出于效率考虑喽，传指针只需要拷贝4字节，如果要传值，岂不是每调用函数一次，都需要拷贝一次数组？ 一个数组几千个元素，会浪费多少时间呀？</p>
+<p>所以说，大型结构体和数组，还是传指针比较好。</p>
+<p>&nbsp;</p>
+<p>总结：数组作为函数的参数，便退化为指针，没法再和指针区分了。在函数里，sizeof(a)的大小应该为4.</p>
+<p>&nbsp;</p>
+<p><strong>字符串数组与指针</strong></p>
+<hr>
+<p>先看看下面的代码：</p>
+<p>char* pstr = “hello world”;</p>
+<p>char str[] = {“hello world”};</p>
+<p>&nbsp;</p>
+<p>int x1 = sizeof(pstr);</p>
+<p>int x2 = sizeof(str);</p>
+<p>int x3 = strlen(pstr);</p>
+<p>int x4 = strlen(str);</p>
+<p>&nbsp;</p>
+<p>很简单，相信大家都很清楚运行的结果。pstr是个指针，str是个数组。sizeof操作符</p>
+<p>只关心定义时的类型，指针就返回4（32位系统），数组就返回数组元素的个数 * 单个</p>
+<p>元素的大小。所以x1为4， x2为12.</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>而strlen就更简单了，参数为指针，数组传入后，会退化为指针，所以根本就不区分，</p>
+<p>它从指针偏移处为0开始计数，直到遇到\0为止。所以x3和x4都为11.</p>
+<p>&nbsp;</p>
+<p>补充一点，pstr中只存储了一个指向”hello world”的地址，编译器在扫描到”hello world”这个常量时，</p>
+<p>将它放入到存储在只读段内，也就是说pstr指向的是一个只读的区域，pstr[1] = ‘x’ 这种操作</p>
+<p>是不允许的，会引起程序崩溃.</p>
+
+      
+    </div>
+
+  </div>
+
+  <div class="article-footer">
+    <div class="article-meta pull-left">
+
+    
+      
+
+    <span class="post-categories">
+      <i class="icon-categories"></i>
+        <a href="/categories/Programing-Language/">Programing Language</a>
+    </span>
+    
+
+    
+
+    </div>
+
+    
+  </div>
+</article>
+
+  
+	<div id="comment">
+	
+	
+	<!-- 多说评论框 start -->
+	 <div class="ds-thread" data-thread-key="/archives/147/" data-title="C 语言中的一维数组与指针" data-url="https://dongxuan.github.io/blog/archives/147/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"novcat"};
+	  (function() {
+	    var ds = document.createElement('script');
+	    ds.type = 'text/javascript';ds.async = true;
+	    ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+	    ds.charset = 'UTF-8';
+	    (document.getElementsByTagName('head')[0] 
+	     || document.getElementsByTagName('body')[0]).appendChild(ds);
+	  })();
+	  </script>
+	<!-- 多说公共JS代码 end -->
+	
+	</div>
+
+
+
+
+    </main>
+
+    <footer class="site-footer">
+  <p class="site-info">
+    Proudly powered by <a href="https://hexo.io/" target="_blank">Hexo</a> and
+    Theme by <a href="https://github.com/CodeDaraW/Hacker" target="_blank">Hacker</a>
+    </br>
+    
+    &copy; 2020 xuan&#39;s blog
+    
+  </p>
+</footer>
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-83658798-1', 'auto');
+    ga('send', 'pageview');
+
+</script>
+
+  </div>
+</div>
+</body>
+</html>

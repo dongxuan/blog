@@ -1,0 +1,605 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>Linux virtual filesystem switch I 磁盘相关概念以及知识 | xuan&#39;s blog</title>
+
+  
+
+  
+  <meta name="description" content="&amp;nbsp;
+前言：最近一直在研究linux vfs，原本打算写一点心得就行了，我超级懒，结果没想到越写越多。计划一共写5篇：
+
+磁盘相关概念以及知识。
+FAT文件系统以及EXT2文件系统的概要分析。
+VFS相关概念以及流程分析.
+以EXT2和FAT32为例，分析具体文件系统在VFS中的实现。
+使用VFS接口自己实现一个简单的文件系统。希望不是坑。。。。另外本文中的一些图片来自于互联网，另一些是我自己画的，本来想给出原图的引用，但后来发现同一张图出现在各种地方，原作者是谁已经找不到了，只能写“图片来自于互联网”。另外，文章只是我自己个人的理解，可能会有一些错误。
+
+磁盘相关概念以及知识（目录表）
+硬盘的物理结构
+
+硬盘的数据接口
+硬盘的电源接口
+磁头以及机械臂
+盘片
+*   磁道
+
+柱面
+物理扇区
+
+电器组件
+
+
+
+
+
+硬盘的逻辑结构
+
+逻辑扇区
+硬盘的寻址的三种模式
+*   Normal模式
+
+Large 模式
+LBA 模式
+
+格式化
+
+低级格式化
+
+
+高级格式化
+
+分区
+
+主分区
+
+
+扩展分区
+逻辑分区
+Linux 下的主分区和扩展分区
+Windows 下的主分区和扩展分区
+
+MBR 与 GPT
+
+MBR 详细介绍
+
+
+GPT 概要介绍">
+  
+
+  
+  
+  <meta name="keywords" content="Linux,MBR,VFS,分区表,文件系统">
+  
+
+  <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+  <meta property="og:title" content="Linux virtual filesystem switch I 磁盘相关概念以及知识"/>
+
+  <meta property="og:site_name" content="xuan&#39;s blog"/>
+
+  
+  <meta property="og:image" content="/favicon.ico"/>
+  
+
+  <link href="/favicon.ico" rel="icon">
+  <link rel="alternate" href="/atom.xml" title="xuan&#39;s blog" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+
+<body>
+<div class="blog">
+  <div class="content">
+
+    <header>
+  <div class="site-branding">
+    <h1 class="site-title">
+      <a href="/">xuan&#39;s blog</a>
+    </h1>
+    <p class="site-description"></p>
+  </div>
+  <nav class="site-navigation">
+    <ul>
+      
+        <li><a href="/">首页</a></li>
+      
+        <li><a href="/article">文章</a></li>
+      
+        <li><a href="/technical">技术</a></li>
+      
+        <li><a href="/about">关于</a></li>
+      
+    </ul>
+  </nav>
+</header>
+
+    <main class="site-main posts-loop">
+    <article>
+
+  
+    
+    <h3 class="article-title"><span>Linux virtual filesystem switch I 磁盘相关概念以及知识</span></h3>
+    
+  
+
+  <div class="article-top-meta">
+    <span class="posted-on">
+      <a href="/archives/28/" rel="bookmark">
+        <time class="entry-date published" datetime="2013-02-16T01:28:27.000Z">
+          2013-02-16
+        </time>
+      </a>
+    </span>
+  </div>
+
+
+  
+
+  <div class="article-content">
+    <div class="entry">
+      
+        <p>&nbsp;</p>
+<p>前言：最近一直在研究linux vfs，原本打算写一点心得就行了，我超级懒，结果没想到越写越多。计划一共写5篇：</p>
+<ul>
+<li>磁盘相关概念以及知识。</li>
+<li>FAT文件系统以及EXT2文件系统的概要分析。</li>
+<li>VFS相关概念以及流程分析.</li>
+<li>以EXT2和FAT32为例，分析具体文件系统在VFS中的实现。</li>
+<li>使用VFS接口自己实现一个简单的文件系统。<br>希望不是坑。。。。另外本文中的一些图片来自于互联网，另一些是我自己画的，本来想给出原图的引用，但后来发现同一张图出现在各种地方，原作者是谁已经找不到了，只能写“图片来自于互联网”。另外，文章只是我自己个人的理解，可能会有一些错误。</li>
+</ul>
+<h3 id="磁盘相关概念以及知识（目录表）"><a href="#磁盘相关概念以及知识（目录表）" class="headerlink" title="磁盘相关概念以及知识（目录表）"></a>磁盘相关概念以及知识（目录表）</h3><ul>
+<li><p>硬盘的物理结构</p>
+<ul>
+<li>硬盘的数据接口</li>
+<li>硬盘的电源接口</li>
+<li>磁头以及机械臂</li>
+<li><p>盘片</p>
+<pre><code>*   磁道
+</code></pre><ul>
+<li>柱面</li>
+<li><p>物理扇区</p>
+</li>
+<li><p>电器组件</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>硬盘的逻辑结构</p>
+<ul>
+<li>逻辑扇区</li>
+<li><p>硬盘的寻址的三种模式</p>
+<pre><code>*   Normal模式
+</code></pre><ul>
+<li>Large 模式</li>
+<li><p>LBA 模式</p>
+</li>
+<li><p>格式化</p>
+<ul>
+<li>低级格式化</li>
+</ul>
+</li>
+<li><p>高级格式化</p>
+</li>
+<li><p>分区</p>
+<ul>
+<li>主分区</li>
+</ul>
+</li>
+<li>扩展分区</li>
+<li>逻辑分区</li>
+<li>Linux 下的主分区和扩展分区</li>
+<li><p>Windows 下的主分区和扩展分区</p>
+</li>
+<li><p>MBR 与 GPT</p>
+<ul>
+<li>MBR 详细介绍</li>
+</ul>
+</li>
+<li>GPT 概要介绍<a id="more"></a>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="硬盘的物理结构"><a href="#硬盘的物理结构" class="headerlink" title="硬盘的物理结构"></a>硬盘的物理结构</h3><p>相信大家对硬盘一定非常熟悉，作为计算机中非常重要的组件，硬盘在计算机发展中一直处于拖后腿的角色， 相对于CPU,显卡，硬盘一直没有什么颠覆性的创新,容量已经足够大了，速度却一直跟不上，不过还好， 近些年来固态硬盘（SSD）慢慢的已经在改变这种现状。</p>
+<p>硬盘按照存储介质分为机械硬盘（HDD）和固硬盘（SSD），本文中关于硬盘构成的大部分内容都是描述机械硬盘的，SSD请各位自行查找WIKI。</p>
+<p>好吧，我们开始吧。拆开电脑，硬盘是被固定在机箱中的，这玩意最怕震动和灰尘。接口有2个，一个是电源接口一个是数据接口。</p>
+<h4 id="硬盘的数据接口"><a href="#硬盘的数据接口" class="headerlink" title="硬盘的数据接口"></a>硬盘的数据接口</h4><p>主要分为以下几种 :</p>
+<ul>
+<li><strong>ATA（IDE）</strong>：从ATA1 到ATA7， 兼容性比较好，采用40pin并口数据线，抗干扰性太差，占空间大并且不易散热，已经被淘汰。这里有一份ATA总线的<a href="http://www.ata-atapi.com/hist.html" target="_blank" rel="external">发展史</a>。</li>
+<li><strong>SATA</strong>：ATA的继任者，串行的ATA接口，采用4pin的数据线，抗干扰性好，支持热插拔，由于总线针脚较少，有利于机箱内空气流通，是当今的主流。 下图为SATA 和 ATA 总线 ：<a href="http://119.28.15.234/wp-content/uploads/2013/02/1.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/1.jpg" alt="1"></a></li>
+<li><strong>SCSI</strong>：小型机系统接口，并不是专门为硬盘设计的，优点是支持高转速的硬盘，传输时占用CPU资源较低，但是比较昂贵，安装据说也是一种噩梦。有50pin，68pin，80pin多种规格了，由于SATA不断进化，这种接口（在硬盘方面）应该会逐渐淘汰。下图为SCSI接口：<a href="http://119.28.15.234/wp-content/uploads/2013/02/2.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/2.jpg" alt="2"></a></li>
+<li><strong>SAS</strong>：串行SCSI，是由SCSI演化过来的，比SCSI更快并且配置更简单。更重要的是它海域SATA设备兼容，可以使用相同的电缆。注意，这里说的兼容的意思是SATA的硬盘可以接在SAS接口上使用，但SAS的硬盘不能接在SATA上使用（感觉有点无耻呀）。</li>
+</ul>
+<h4 id="硬盘的电源接口"><a href="#硬盘的电源接口" class="headerlink" title="硬盘的电源接口"></a>硬盘的电源接口</h4><p>主要和数据总线有关，ATA接口的配备的电源接口为D形4针电源接口（大4pin接口），而与SATA配合的则是5pin的L 型接口（但也可以通过转接线将大4pin的电源接口转换为SATA可用的 ，如下图白色的为ATA电源线，黑色的为SATA电源线）。当然移动硬盘也可以通过USB接口供电。</p>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/3.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/3.jpg" alt="3"></a></p>
+<p>接着我们来看硬盘的内部构造。什么，你要准备用螺丝刀拆了？我承认拆和组装的确很令人兴奋，不过我还是劝你住手。硬盘是相当精密的设备，内部虽然不是真空，但是空气超级洁净，尘土对于内部的磁头和盘片有致命伤害。以大家所居城市PM2.5的值来看，还是算了吧。当然这个硬盘对你如果已经没有价值并想将其用于科研或者利用脸盆和硬盘来制作棉花糖机器，拆开当然没问题。没拆的请看下图：（图片引自互联网）</p>
+<h4 id=""><a href="#" class="headerlink" title=""></a><a href="http://119.28.15.234/wp-content/uploads/2013/02/4.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/4.jpg" alt="4"></a></h4><h4 id="磁头以及机械臂"><a href="#磁头以及机械臂" class="headerlink" title="磁头以及机械臂"></a>磁头以及机械臂</h4><p>由于有多张盘片，现代硬盘一般都有多个磁头，磁头也是硬盘中最贵的东西。当进行写操作时，对磁头施加一个特殊的电流，电流产生的磁场会使盘片上的磁性物质产生变化，这种变化即使电流消失了依然可以保持，从而完成写数据的操作。当进行数据读取时，磁头根据盘片区域内的磁场产生感应电流变化幅度，再加上电路处理而获取数据。早期读写磁头是同一个，而新式的磁阻磁头（Magnetoresistive heads）将读写磁头分开（感应写，磁阻读，通过阻值变化而不是电流变化去感应信号幅度），以达到更好的读写性能。当盘片告诉转动时，磁头依靠空气悬浮在盘片上，与盘片非常接近，大概只有零点几微米。这个距离可要控制好，太近了有可能擦伤盘片上的磁性物质和磁头（试想想硬盘那个恐怖的转速）太远了会使磁头的灵敏度变差。硬盘的电路可以控制机械臂的沿盘片径向运动，使磁头悬浮在盘片的不同半径上，配合盘片的转动，可以完成数据的寻址。</p>
+<h4 id="控制电机"><a href="#控制电机" class="headerlink" title="控制电机"></a>控制电机</h4><p>令盘片高速转动起来，所有的盘片都固定在主轴上。盘片的转速甚至可以达到每分钟上万转。硬盘的转速也是硬盘的一个重要参数。电器组件：包括一些控制电路以及硬盘的cache。前面我说硬盘相对于CPU和内存，属于拖后腿的角色，是因为硬盘寻道时，移动磁头是一种机械运动，虽然目前已经速度很快了，但相对于电子电路，实在是太慢了。所以硬盘中加入了缓存，以缓解和内存访问速度相差太大的问题。</p>
+<h4 id="盘片"><a href="#盘片" class="headerlink" title="盘片"></a>盘片</h4><p>盘片一般是用用铝合金或者玻璃制成的，上面平铺一层磁性物质。为了节省空间，加大硬盘的容量，盘片的正反两面都会被利用起来（但也有只用1面的）。逻辑上我们会从上到下给每个盘面一个编号，从0开始。由于每一个盘面都会对应一个磁头，所以经常也会说0号磁头，1号磁头用来表示对应的盘面。</p>
+<ul>
+<li><strong>磁道（TRACK）</strong>：其实我很纠结，磁道这个东西究竟放在逻辑结构好还是物理结构好。以前我总认为磁道是个逻辑上的概念，但当详细了解了低级格式化之后，我认为磁道是物理上真正存在的，再加之为了后面方便描述物理扇区，我将它放在了物理结构中。 试想一下，电机开动，磁盘盘片开始狂转，将磁头固定好不动，磁头会划出一个圆形的轨迹，这个轨迹我们称之为磁道。 有一点需要知道，磁道并不是紧挨着的。为啥？挨的太紧虽然可能增加盘片磁道的个数，但是会导致磁化单元间相互干扰影响，还有，磁头读写定位也比较困难。磁道从外到内，依次从0开始编号，现代硬盘盘片上有成千上万的磁道。</li>
+<li><strong>柱面(Cylinder)</strong>：硬盘有多个盘面， 柱面实际上是多个相同半径的磁道集合。柱面也和磁道一样，由外圈向内，从0开始编号。0号柱面是指 0号盘面的0号磁道 + 1号盘面的0号磁道 + 2号盘面的0号磁道 。。。磁道是个平面的概念，柱面是个立体的概念。（图片引自互联网）问题出现！ 如果一个磁道写满了之后，是接着写相邻的磁道，还是写下一个盘面上的相同磁道？答案是后者。如果是写相邻磁道，那么磁头就需要移动，硬盘的这种机械移动相对于计算机来说是非常非常慢的，我们应尽量避免磁头移动。而每个盘面都有读写磁头，当一个磁道写满之后，只需要一个电子开关选取下一个磁头写下一个盘面，根本不需要机械移动。记住这个规则，硬盘都是先写完一个柱面再接着写下一个柱面。</li>
+<li><p><strong>物理扇区(Sector)</strong>：为了和后面的逻辑扇区做区分，这里称之为物理扇区。扇区，是磁盘读写的最小单位。 所谓扇区，就是磁道上的一小段圆弧，扇区上存储着512字节的数据块。</p>
+<blockquote>
+<p>大家有没有思考过一个问题，在前面的那些描述中为什么每磁道的扇区个数都是一样的？<br>按理说，外圈的圆弧长度大于内圈的，应该能存储更多的数据才对。最早的PC磁盘，每个磁道拥有17个扇区， 由于技术的限制，内圈和外圈扇区个数相同，造成了外圈比较大的空间浪费。后来的 zone bit recording 技术解决了这个问题，可以令外圈的磁道拥有更多的扇区。而如今每个磁道可有有上千个扇区。换句话说，当今的磁盘， 每个磁道的扇区数是不一样的。（这句很重要）</p>
+</blockquote>
+<p>还有一点，扇区是从1开始，而不是0 （逻辑扇区是从0开始的，记住，我们这里说的是物理扇区！）关于为什么 不从0开始，我查了半天资料也没找出来，我个人猜想，0扇区会不会存放了一些磁道以及硬盘参数等信息，硬盘 内部使用而不公开呢？</p>
+<p>关于扇区的组成，很多人会认为扇区的大小就是512字节，其实物理介质上存储的数据要比512大。 扇区大致由以下3部分组成：</p>
+<ul>
+<li>扇区头：一般含有扇区的地址信息（后面寻址会将到），扇区属于哪个柱面，哪个磁头以及扇区的序号。硬盘读取这个扇区数据时，首先比对一个扇区头的地址和想要读的地址是否相同。另外就是一个标志，如扇区是否不可用，或者有损坏（写入或者读取出错），还有sync标志（读取某扇区时，先要看此扇区是否已经写入完毕）以及重定向标志(标明这个扇区已经损坏，并给出另一个可用的扇区)。</li>
+<li>数据区：真正的数据。</li>
+<li><p>纠错码（ECC error-correcting code）：ECC具体可以参看WIKI。硬盘读取扇区时，首先比对扇区头的地址信息，接着读取数据，计算出ECC，比对是否和此处的ECC码一致，不一致说明数据已经损坏。写的计算好ECC码，写入数据，接着将ECC写入扇区。<br>根据上面的描述，大家应该知道，读写数据的有可能出现坏道（或者说扇区读写错误）有两种原因造成：</p>
+</li>
+<li><p>逻辑坏道：读写数据与ECC码不一致。（解决方法试着再读写几次）</p>
+</li>
+<li>物理坏道：扇区磁性介质物理损伤。 （无解。一些所谓的修复就是就是在扇区头加一个重定位标准，读写这个扇区时让磁头去读其他扇区）<br>这些过程对于磁盘外部来说都是透明的，IDE控制器控制，关于扇区的确切的结构，这与不同的硬盘厂商相关，对于很多人来说，明白一个扇区是512字节就够了。（你这不是承认自己说了半天废话，看看我硬盘的ECC码的大小，50字节呀，也有ECC为40字节的）</li>
+</ul>
+<p>OK，完了。等下等下。。。既然扇区的结构各家厂商不太一致，那么，盘片造好的后，他们做了什么操作使磁盘扇区变成他们想要的结构？ 对了，低级格式化，用低级格式化来划分磁道以及扇区结构（请参见本文后半部分）.</p>
+<blockquote>
+<p>等等，前面说了那么多，扇区的大小为什么是512字节呢？<br>这有一些历史原因，一般物理扇区的大小为512字节，但也有一些不兼容IBM PC的硬盘设备扇区大小为520字节。现在也有1024字节，2048字节，以及4096（4K）字节一扇区的硬盘。2009年12月后，硬盘厂商开始发布4K扇区的硬盘，他们已经为这事酝酿十多年年了，4K扇区以后应该是主流。<br>为什么会出现4K扇区的硬盘呢？<br>由于人类太过贪婪，要求硬盘容量越来越大。硬盘厂商苦恼着不断想各种方法提升容量。 从前面硬盘组成结构可知，提升容量可从下面三个方面入手：</p>
+</blockquote>
+<ul>
+<li>增加盘面的数量 =&gt; （亲，硬盘就那么厚，现在连正反面都用上了！）</li>
+<li>每个盘面划分更多的磁道 =&gt; ( 磁道已经密密麻麻的了，磁道再多的话，磁头就不好寻址了）</li>
+<li>提升磁性物质的密度，以及扇区间的空隙，划分出更多的扇区。 （现在又有垂直读写技术了！）<br>我们来看第三点，存储密度越来越大，新的问题出现了！各个磁性物质间相互影响，造成磁头读取时的信噪比（SNR）不断下滑，换句话说，读一次，出现错误几率增大了。我们知道，ECC就是用来纠错的，每512字节的扇区，至少需要40字节的ECC码来进行纠错。如果。。。如果每4K的扇区，只需要100字节呀！ 亲，赶紧算算：<blockquote>
+<p>512 <em> 8 = 4K =&gt; 40 </em> 8 = 320<br>512的扇区4K需要320字节的ECC，而4K的扇区只需要100字节，一下子节省了220字节，好多呀！等等，还有更多的惊喜呢！扇区之间还有空隙，没有利用，使用4K扇区，这些空隙也可以被利用起来！请看下图的对比 ！（图片可耻的copy自西数的某白皮书）<a href="http://119.28.15.234/wp-content/uploads/2013/02/5.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/5.jpg" alt="5"></a></p>
+</blockquote>
+</li>
+</ul>
+<p>再问一个问题，为毛是4K，而不是2K，8K？</p>
+<p>4K，一个x86系统上神奇的数字。从文件系统层面上来说，磁盘的<br>最小逻辑管理单位，簇（NTFS）和块（EXT3）都是以4K，刚好映<br>射一个物理的扇区。而内存分页的大小也是4K，磁盘中一个扇区<br>刚好能读进一个内存分页中，非常完美。</p>
+<p>4K扇区，看起来很好，但同样也引入了一些麻烦。</p>
+<p>首先产生了兼容性问题，因为BIOS，引导程序以及很多操作系统<br>以及应用都认为硬盘物理扇区的大小为512字节，如果以4K为物理<br>扇区，这些东西都要改，这也是为什么硬盘厂商酝酿了10年多才<br>开始发布这种硬盘。</p>
+<p>目前为了解决这个问题，硬盘厂商采用了一种模拟的过渡方案，<br>硬盘必须做一些额外的工作。以4K物理扇区为例，如果要修改<br>512字节，硬盘需要先移动磁头到指定扇区，读取4K的数据到<br>缓存中，修改4K中指定的512字节，然后再写回去。这种硬盘<br>内部的转换过程称之为“4K with 512-byte emulation”，简称<br>512e。虽然解决了兼容性问题，但又产生了数据不一致以及性<br>能等问题。随着4K扇区硬盘的推广，目前MS等操作系统厂商已<br>经在操作系统层面开始解决这个问题，硬盘以4K作为读写颗粒，<br>操作系统负责处理解决上层问题，并使操作系统的引导代码能<br>直接使用4K扇区。<br>（参看<a href="http://http://support.microsoft.com/kb/982018/zh-cn" target="_blank" rel="external">这里</a>）<br><code>&lt;/pre&gt;
+[![6](http://119.28.15.234/wp-content/uploads/2013/02/6.jpg)](http://119.28.15.234/wp-content/uploads/2013/02/6.jpg)
+&lt;pre&gt;</code>再看另一个问题，即使上层以4K进行扇区操作，依然存在一个<br>分区对齐的问题，未对齐的分区依然会对磁盘的性能产生重大<br>影响。假设系统想要读取硬盘的上4K数据，而这4K前2K在一个<br>扇区的后半部分，后2K在下一个扇区的前半部分。<br>如果是读操作，影响不大，因为磁头几乎会连续通过这两个扇<br>区，直接读2扇区，然后在缓存中丢弃掉没用的数据即可。<br>但是对于写操作，就需要修改两个扇区，需要时间较多，造成<br>应能下降。</p>
+<p>所以说硬盘技术实际上一直在挖坑，512扇区一个大坑，CHS寻<br>址一个坑，MBR又是一个坑，总是为了兼容折腾。<br>`<br>（其实我觉得BIOS是个更大的坑，几十年来一直没啥变化，一些东西已经影响到了计算机的发展，MS等公司正 折腾着用EFI替换掉它）</p>
+<p>(下图展示了磁道扇区以及柱面的相关概念，copy自互联网）</p>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/2064058214.png" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/2064058214-580x460.png" alt="2064058214"></a></p>
+<p>#### </p>
+<h3 id="硬盘的逻辑结构"><a href="#硬盘的逻辑结构" class="headerlink" title="硬盘的逻辑结构"></a>硬盘的逻辑结构</h3><h4 id="逻辑扇区"><a href="#逻辑扇区" class="headerlink" title="逻辑扇区"></a>逻辑扇区</h4><p>是由系统划分的，大小为物理扇区的倍数，一般为512字节。</p>
+<blockquote>
+<p>等等，提问！为啥我还听过簇（cluster）和块（block）这两个概念呢？为啥没讲？<br>其实，簇就是一系列相邻逻辑扇区的集合，是微软系文件系统的概念，如FAT，FAT32，NTFS。 而块（block）是UNIX系文件系统的概念，和簇类似，一般是1024字节。这俩东西后面将具体 文件系统时再说。</p>
+</blockquote>
+<h4 id="硬盘的寻址"><a href="#硬盘的寻址" class="headerlink" title="硬盘的寻址"></a>硬盘的寻址</h4><p>对于计算机来说，硬盘就是个黑盒，什么控制电机了，内部怎么旋转了，怎么定位了，都不想知道。 计算机只希望我给你电源接口供电，给数据接口发送指令，简化一下，大概分为2种操作：</p>
+</li>
+<li><p>读操作：给数据接口发送读信号，并且给出想要读取数据块的位置以及大小。</p>
+</li>
+<li><p>写操作：给数据接口发送写信号，给出想要写入的位置以及写入的数据，等待硬盘写入完毕。</p>
+<blockquote>
+<p>好了，问题来了，这个位置如何表示？也就是硬盘的寻址问题.<br>根据寻址方式的不同，硬盘也出现了两种抽象。</p>
+</blockquote>
+</li>
+<li><p><strong>CHS寻址</strong>： CHS寻址又叫3D寻址，比较好理解，对硬盘做简单的抽象，利用三个数字来定位数据。C （Cylinder）代表柱面号， H（Head）代表磁头号， S代表扇区号（Sector）。根据我们前面对磁盘结构的描述， 柱面从0开始，由外向内依次编号。磁头由上到下，从0开始依次编号。扇区从1开始编号。将硬盘想象成几个圆形盘片叠落在一起，H可以定位是那个盘片的那一面，C可以定位是磁道，S可以定位是哪一段圆弧。 CHS三个数字即可完成寻址操作。</p>
+</li>
+<li><p><strong>LBA寻址</strong>：LBA（Logical block addressing）是一种线性寻址方式，把硬盘想象成一种线性设备。LBA是比CHS更加高阶的一种抽象。大家可以将硬盘想象成一条很长很长的纸带或者干脆将硬盘当成一个巨大的文件，每512字节是一个逻辑扇区。LBA0代表0扇区，LBA8765代表第8765个扇区。LBA可以理解为是按扇区号进行编码的，磁盘的0柱面，0磁头，1扇区编号为0， 2扇区编号为1，以此类推。只需要一个LBA号即可完成定位。怎么样，相对于CHS更好理解，更简单吧？ (注意: 在CHS寻址中扇区都是从1开始，而LBA有LBA0，也就是0扇区。)</p>
+<h4 id="硬盘的寻址的三种模式"><a href="#硬盘的寻址的三种模式" class="headerlink" title="硬盘的寻址的三种模式"></a>硬盘的寻址的三种模式</h4><p>在BIOS里硬盘寻址分为三种模式：CHS （NORMAL），LARGE 和LBA。</p>
+<p>做了简单了解之后，我们来说一下硬盘寻址发展的历史，这里概念比较多，大家注意了。</p>
+<p>早期的ATA（IDE）接口的硬盘，是采用22bit的LBA进行寻址的，接着1994年，ATA-1标准定义了2种 硬盘寻址方式，28bit的LBA和CHS。 CHS采用 16bit表示柱面序号， 4bit表示磁头序号， 8bit表示 扇区序号。</p>
+<p>IBM PC开始普及。IBM PC早期是使用软盘作为存储设备的，寻址方式是CHS，24bit。 10bit柱面， 8bit 磁头， 6bit扇区。 IBM PC的BIOS中有个很著名的int 13中断（或者称之为 系统调用吧，可以想象成一个低级函数），负责读取写入和校验磁盘。int 13中断就是按照 CHS 24bit这种方式来进行寻址的，而且实现还早于ATA-1标准。</p>
+<p>当ATA接口的硬盘遭遇IBM PC的时候，问题就来了，不兼容，怎么办？ 只能做映射了。想一下， ATA的 28bit（16:4:8） 怎么映射成 （10:8:6） ？ 最简单的方式就是将C 和 S的高位舍弃，将H的高位补0。好了，问题解决。 等等，ATA的磁头当时定标准时为啥用4bit来表示，就不能多点吗？亲呀， 当时的技术，4bit能表示16个磁头，相当于16个盘片放在一起，多厚呀（当时 还没双面的技术），8bit 256个磁头你不觉得有点变态吗？</p>
+<p>让我们想想现在又出现了什么问题，ATA的CHS 24bit（16:4:8）理论硬盘最大 支持到：</p>
+<blockquote>
+<p>65536 <em> 16 </em> 255 * 512 = 127 GB<br>（注意：512指扇区大小为512字节， 255是由于扇区都是从1开始，而非0）</p>
+</blockquote>
+<p>大约是127GB，我这里算的时候1M = 1024KB，和硬盘商的1M = 1000KB略微不同.</p>
+<p>再看看IBM的CHS 24bit（10:8:6）的理论值：</p>
+<blockquote>
+<p>1024 <em> 256 </em> 63 <em> 512 = 8GB（8064MB）<br>当ATA遇见IBM PC的时候，ATA限定了磁头最多为16个，所以真正的CHS 24bit 理论大小变成了：<br>1024 </em> 16 <em> 63 </em> 512 = 504MB<br>啊，就变成这么点了？我们称这个模式为<strong>Normal（或者None，或者CHS）模式</strong>，这个模式下，最多访问504MB 的硬盘空间，C，H，S分别表示真正的物理柱面，磁头和扇区序号。</p>
+</blockquote>
+<p>Normal模式下，有多于的柱面没有利用上，该怎么办呢？ 对了，ATA的磁头太少了，我们虚拟一些磁头即可。BIOS中引入了<strong>Large （或称为 Bit Shift Translation模式 ）</strong>，当柱面多于1024的时候，就进入Large模式，Large模式会对柱面和磁头做如下转换：</p>
+<blockquote>
+<p>如果柱面大于1024，就除以2，并且对磁头数乘以2.<br>举个例子：2048柱面，6号磁头，1号扇区处的数据，直接拿来用（2048,6,1）在BIOS会认为是非法的 （因为柱面数大于1024）在large模式下会映射到 （1024，12， 1），合法！多余的柱面映射完成！ Large模式下寻址空间变成了IBM CHS 24bit的理论值 8GB。</p>
+</blockquote>
+<p>在large模式中，我们已经虚拟了一些不存在的磁头，这里的CHS已经不完对应物理设备了。（这也是 Normal模式称之为CHS寻址，而Large模式不那么称呼的原因了。）</p>
+<blockquote>
+<p>插播一段小八卦，这里计算容量的时候，磁头最多有256个（0 - 255），由于MS 的DOS系统所有版本 都有一个bug，如果磁头有256个，就会引起系统crash….所以磁头一般序号最大为254, 实际可用的空间 再次减小，MS万岁！<br>8G貌似还不够，而且CHS模式目前遇见了问题，毕竟CHS也无法表述其他的存储设备，如磁带，网络存储设备，SSD， 外加多块硬盘，磁头柱面之类的这些设备根本就不存在，于是引入<strong>LBA寻址模式</strong>。</p>
+</blockquote>
+<p>ATA（IDE）控制器将LBA的地址转换成具体的物理地址。IDE标准可以使用22bit的LBA， ATA-1扩展到28bit， ATA-6再次扩展到48bit2003年，ATA-6已经支持48bit的LBA寻址，硬盘最大支持到128PB，已经够大了。实际上INT 13H Extensions支持64bit的LBA寻址，支持的硬盘大小已经达到目前的天文数字（MBR最大支持2TB硬盘，所以也要被GPT替换了，后面我们详细再说吧，技术日新月异呀。）。不过现代的操作系统很多都不使用BIOS中的int 13中断了（除了在boot loader时），而是直接访问硬盘。</p>
+<p>一般情况BIOS使用的是C/H/S（柱面，磁头，扇区） 寻址，单由于硬盘容量增长太快了，由于分区表等 一些历史原因，C/H/S已经无法满足大分区的寻址了，现代操作系统都采用的是LBA寻址法。</p>
+<p>大家明白我前面为啥说CHS又是一个坑了吧？</p>
+<h4 id="格式化"><a href="#格式化" class="headerlink" title="格式化"></a>格式化</h4></li>
+<li><p><strong>低级格式化</strong>：如我前面所说，物理扇区是有一定格式组成的，每一块硬盘出厂前，需要进行“低级格式化”。所谓低级格式化，就是将硬盘划分出磁道，划分出物理扇区，使磁盘具有读写的能力。早期的硬盘，低格是一种物理操作，会影响硬盘的寿命，而现在的硬盘低格已经不再是物理操作，但建议还是不要乱进行低格。当你的硬盘的某些扇区因为一些原因丢失了扇区信息，可以尝试用低格来重新划分扇区。低格是针对整块硬盘的，重新划分磁道意味着原来的数据将要全部丢失，无法再恢复。如果你有块硬盘要送人又担心自己的隐私问题，建议对整块硬盘进行写0操作而非低格，因为据说低格很耗时间，320G的硬盘要20小时。。。（恐怖）</p>
+</li>
+<li><p><strong>高级格式化</strong>：高级格式化是针对某个分区进行了，按照你选定的文件系统格式（如FAT、NTFS 、EXT、HFS+），给特定区域写入特定信息，将分区按照文件系统定义的格式进行组织。</p>
+<h4 id="分区"><a href="#分区" class="headerlink" title="分区"></a>分区</h4><p>分区就是将硬盘划分成几个逻辑部分，每一部分称之为一个分区。</p>
+<blockquote>
+<p>教练，为什么要有分区？<br>为什么，原因很多。一个熊孩子的电脑只有一个分区，格式化成一种文件系统，结果有一天他说教练我还想再安装一个其他文件系统，怎么办？</p>
+</blockquote>
+<p>分区的好处是可以在一个硬盘上安装多个文件系统。</p>
+</li>
+<li><p>每个分区存放不同种类的数据，方便逻辑上管理。</p>
+</li>
+<li>一个分区如果损坏，不会影响其他分区。</li>
+<li>操作系统一般都需要安装在独立分区内，多个分区可以安装多个操作系统。</li>
+<li><p>。。。。。<br><strong>分区的类型：</strong>分区分为主分区，扩展分区和逻辑分区。 怕大家搞混，我们慢慢来说。硬盘的0柱面，0磁头，1扇区称之为主引导扇区（MBR），系统启动后，首先读取的就是这个扇区，关于MBR的详细内容，后面有篇幅描述，大家现在只要知道，MBR中含有一个分区表，记录着硬盘上的分区。由于一些历史原因，分区表中的分区最多只能有4个。换句话说，一块硬盘最多能分4个分区。</p>
+<p>好像有点少呀，贪婪的人类不满足了，想要更多的分区，最简单的方法就是扩大MBR的分区表！不行，MBR也是一个坑， 更改了MBR的格式，会引起很多兼容性问题。所以人们在不改变MBR结构的前提下，把分区表中的最后一个分区加以特殊化，从而扩展出更多的分区。</p>
+<p>分区表中的分区我们称之为<strong>主分区</strong>，主分区中那个特殊的分区，我们称之为<strong>扩展分区</strong>。主分区最多有4个，扩展分区最多有一个。</p>
+<p>对于一个磁盘，我们可以这么分：</p>
+</li>
+<li><p>1个或 2 个或 3个或4个主分区。 &lt;= 不要扩展分区</p>
+</li>
+<li>1个扩展分区 &lt;= 不要主分区 （没有主分区的硬盘只能当数据盘，是无法引导操作系统的）</li>
+<li><p>1个或2个或3个主分区 外加一个扩展分区<br>那么逻辑分区又是什么东西呢？ 刚才我们说了，分区表中有个特殊的分区，称之为扩展分区，我们可以把扩展分区当成一个容器，再划分成N个分区，这些分区，对于MBR来说，不存在，但对于我们来说，是存在的，这就是<strong>逻辑分区</strong>。</p>
+<p>简单的理解就是：</p>
+<blockquote>
+<p>硬盘 = 主分区（最多有4个，可以不存在） + 扩展分区（最多有1个，可以不存在） + 未分配的空间（可以不存在）</p>
+<pre><code>扩展分区 = 逻辑分区1 + 逻辑分区2 。。。。。
+</code></pre><p>关于主分区、扩展分区和逻辑分区我们就先说这么多，具体的结构在MBR和GPT部分详细解释。 下图展示了 包含2个主分区以及1个扩展分区还有3个逻辑分区的硬盘布局图：</p>
+</blockquote>
+<p>（空白部分代表间隙。 另外，MBR只占512字节，没有图中画的那么大。。。）</p>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/7.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/7-580x174.jpg" alt="7"></a></p>
+<p><strong>linux 下的主分区和扩展分区</strong></p>
+<p>根据我们前面对ATA总线的描述，早期是并行的ATA总线，接着是串行的ATA(SATA)总线普及。在linux系统上，早期并行ATA设备是挂载到 /dev/hda (主板上第一个ATA接口 =&gt;实际是第一个已经ready的ATA设备） /dev/hdb （第二个）。。。。依次类推。而第一个SATA或SCSI设备是挂载在/dev/sda上。</p>
+<blockquote>
+<p>注意：a,b,c是按照内核检测出来的硬盘顺序而非特定的插槽.<br>linux用 sda1 - sda4 表示第一个SATA或SCSI 硬盘的 主分区以及扩展分区。而从sda5开始表示逻辑分区（即使硬盘只存在一个扩展分区，逻辑分区也要从sda5开始）。</p>
+</blockquote>
+<p>例如： 第一块硬盘有2个主分区和1扩展分区，扩展分区中有3个逻辑分区，在linux下表示为：</p>
+<blockquote>
+<p>/dev/sda1 &lt;= 主分区</p>
+<pre><code>/dev/sda2 &amp;lt;= 主分区
+
+/dev/sda3 &amp;lt;= 扩展分区
+&lt;pre&gt;`               /dev/sda5     &amp;lt;= 逻辑分区 
+
+               /dev/sda6     &amp;lt;= 逻辑分区 
+
+               /dev/sda7     &amp;lt;= 逻辑分区
+</code></pre><p><strong>windows下的主分区和扩展分区</strong></p>
+</blockquote>
+</li>
+</ul>
+<p>下图我的电脑硬盘在Disk Management中的视图，Disk 2 是我虚拟出来的硬盘，刚才分了N个区。</p>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/9.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/9-580x197.jpg" alt="9"></a></p>
+<p>&nbsp;</p>
+<p>3个主分区外加3个逻辑分区，看起来不太清晰呀，用DiskGenius来看看：</p>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/8.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/8-580x164.jpg" alt="8"></a></p>
+<p>&nbsp;</p>
+<p>对于windows来说，由于大家比较熟悉，所以很好理解。硬盘的一个分区用一个驱动器表示，每个驱动器有一个字母做标示。 驱动器A是预留给3.5英寸软驱的，B是5.2英寸软驱。从C开始，表示硬盘的各个分区。从用户层面来看，普通用户根本不需要区分什么逻辑分区和主分区，但有一点需要注意，操作系统必须安装在主分区上。</p>
+<blockquote>
+<p>貌似还有一点疑问？ Disk0 中200M那个NTFS格式的分区是啥东西？<br>这是我电脑上的一个隐藏分区。 据说所知，linux上貌似没有隐藏分区这个概念（不mount就行了&lt;=我个人理解，可能有错），而windows上所谓的隐藏分区大概包括以下两种：</p>
+</blockquote>
+<ul>
+<li>分区的文件系统windows不识别（如HFS+的分区，EXT3的分区），在资源管理器中无法显示出来。（当然安装特定的驱动和软件就能看到了）</li>
+<li>被windows隐藏的分区就是修改注册表（大概在HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\ Explorer 这个位置，不同操作系统可能不太一样），让windows资源管理器屏蔽掉这些分区。<br>如果是类型2的隐藏分区，一般是用来存放一些系统的备份，方便一健还原之类的，为了防止用户乱删乱改分区内的内容，所以隐藏掉。</li>
+</ul>
+<h4 id="MBR与GPT"><a href="#MBR与GPT" class="headerlink" title="MBR与GPT"></a>MBR与GPT</h4><p><strong>MBR</strong></p>
+<p>MBR前面已经提过几次了（三个坑之一），到底是什么东西？</p>
+<p>MBR，全称 Master Boot Record，中文一般翻译为主引导扇区（或者主引导记录），MBR位于CHS 0/0/1处，也就是0号柱面0号磁头的第一个扇区。MBR是硬盘中首先会被读入到内存中的部分，包含了引导代码以及分区表，非常非常重要。MBR与具体的操作系统没有关系，可以和BIOS配合可以引导硬盘上操作系统。MBR要是损坏了，只能通过探测式试探来修复。不过MBR存在一些限制，如最大支持2TB的硬盘，主分区不能超过4个，再加上合它一起合作的是30多年也没什么变化的BIOS，MS等厂商早对其不爽，吵着闹着要用GPT +　EFI 来替换掉它们（下节描述GPT）。</p>
+<p>我们先来看看MBR的结构：</p>
+<ul>
+<li>446字节的引导代码</li>
+<li>64字节的分区表（包含4个项目，每项16字节）</li>
+<li>2字节的结束标志（55 AA）<br>总计512字节，刚好一个扇区。<blockquote>
+<p>注意：MBR中的数据都是以小尾（Little-Endian）格式存放的。<br>下图是我虚拟出来的Disk 2的mbr： <a href="http://119.28.15.234/wp-content/uploads/2013/02/10.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/10.jpg" alt="10"></a></p>
+</blockquote>
+</li>
+</ul>
+<p>怎么样，够简单的吧？这是典型的MBR，不过现在的MBR 会在 446字节的引导代码中动一点手脚，有的是218自己的引导代码，外加一些时间信息，还有的将扩展分区表写在了这里，不管怎么样，64字节分区表的偏移没有改变。</p>
+<p>在详细研究MBR之前，我们先简单看看BIOS + MBR系统开机的启动过程：</p>
+<ol>
+<li>主板加电，从ROM中读取BIOS代码到内存中，并运行BIOS程序，将控制权交给BIOS。</li>
+<li>BIOS执行内存FFFF:0000H处的跳转指令，跳转到BIOS的自检程序处。</li>
+<li>BIOS执行自检程序，进行自检（POST：Power On Self Test）。</li>
+<li>BIOS枚举设备，检查设备，初始化。</li>
+<li>BIOS按照CMOS（可以理解为主板中的一个存储区域，用户可通过BIOS改写此区域的内容）中设置的引导顺序 搜索引导设备（如先搜光盘，再搜第一块硬盘，第二块，U盘，网络设备。这取决于你boot loader的设置）。</li>
+<li>BIOS读取MBR（CHS 0/0/1) 到内存0000:7C00H中，运行MBR中的引导代码，将控制权交给MBR中的引导代码。</li>
+<li>BIOS POST程序从内存中被清理掉。（但并不是完全被清理，留下了一部分系统调用，一直存在服务于系统）。</li>
+<li>MBR中的引导程序（简称引导程序） 首先会检查MBR的最后部分是不是55 AA。接着扫描分区表，看分区表是否损坏，然后寻找分区表中的活动分区，确保活动分区只有1个。</li>
+<li>MBR引导程序读取活动分区，并运行活动分区的代码，并将控制权交给VBR中的代码，这部分代码就是操作系统的引导代码。<blockquote>
+<p>这部分与具体的文件系统有关了，比如FAT在此处读取VBR，跳过BPB，然后引导系统<br>是不是脑袋晕晕的？ 没关系，我们对照着MBR的三个部分，来仔细研究下这个过程：</p>
+</blockquote>
+</li>
+</ol>
+<ul>
+<li><strong>第一部分：446字节的引导程序</strong><br>有一份某个MBR引导程序的反汇编代码，请点击<a href="http://www.novcat.com/?p=38010" target="_blank" rel="external">此处</a><blockquote>
+<p>硬盘被不同的格式化程序格式化（如fdisk，disk manger等），这个引导程序可能不太一样，但大体功能相同<br>大体上这段引导代码进行了如下操作：</p>
+</blockquote>
+</li>
+</ul>
+<ol>
+<li>重定位自己，MBR此时已经被载入到内存的0000:7C00H，等会这个地方还有其他程序载入。所以引导程序首先将自身copy到0000：0600 处。接着跳转到哪里继续执行。</li>
+<li>查找活动分区（具体是检查分区表中活跃标志位，后面讲分区表会提到。此处就理解检查MBR偏移0x1be, 0x1ce, 0x1de, 0x1ee的值）。没有活动分区或者有多个活动分区的直接打印错误信息，并且死机。</li>
+<li>根据分区表中的CHS信息，读取活动分区的第一扇区到0000:7c00H处。</li>
+<li>跳转到0000:7C00H处，将控制权交给活动分区引导程序。<blockquote>
+<p>OK，看完此处你一定有些疑问，为毛一个硬盘只能有一个活动分区？操作系统必须装在活动分区上，我要是想装2个操作系统怎么办？<br>我前面说的那套东西都是标准的MBR引导程序，你当然可以换成支持多操作系统的MBR，甚至是自己写代码替换MBR中的引导程序，都行。</p>
+</blockquote>
+</li>
+</ol>
+<p>好了，不纠结了亲，我们继续看下一部分。</p>
+<ul>
+<li><strong>第二部分：64字节分区表</strong><br>这部分为了便于理解，我们对着winhex来看。</li>
+</ul>
+<p>我将4个分区（最后一个是扩展分区）分别用颜色标记出来了（开头的黄色部分是mbr的引导代码，最后面的55 AA是MBR结束标志，大家请无视）</p>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/10.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/10.jpg" alt="10"></a></p>
+<p>用DiskGenius查看一下：</p>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/11.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/11-580x34.jpg" alt="11"></a></p>
+<p>分区表总大小64字节，一共4项，每项大家16字节。这就是为什么MBR最多只支持4个主分区的原因。</p>
+<p>以下是分区表每项的结构(我们以第一个分区为例，红色部分)：</p>
+<ul>
+<li><p><strong>分区状态（1字节）</strong> =&gt; 00表示非活动分区， 80表示活动分区，其他数字没什么意义（现在明白引导程序怎么探测活动分区了吧？）。<br>我这个硬盘有4个分区 全都是非活动分区，所以每种颜色开头都是 00</p>
+</li>
+<li><p><strong>起始CHS（3字节）</strong> =&gt; (02 03 00 ) 3字节表示分区的起始柱面，磁头以及扇区。</p>
+<ul>
+<li>第一个字节表示磁头 =&gt; 02磁头 （对照正确！）</li>
+<li>第二个字节的低6位表示扇区 =&gt; 03扇区 （对照正确！）</li>
+<li>第二字节的高2位作为高位，第三字节作为低8位，一个10位表示其实柱面 =&gt; 00 柱面（对照正确！）</li>
+</ul>
+</li>
+<li><p><strong>文件系统标志(1字节)</strong> =&gt; (0B) 表示分区文件系统的类型。根据这份<a href="http://www.novcat.com/?p=32001" target="_blank" rel="external">表格</a>，我们查询到：对照一下DiskGenius，果然是！我没骗你吧。<br><a href="http://119.28.15.234/wp-content/uploads/2013/02/12.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/12.jpg" alt="12"></a></p>
+</li>
+<li><p><strong>结束CHS（3字节）</strong> =&gt; (A3 3C 01) 结束扇区标示的描述和起始扇区相同</p>
+<ul>
+<li>第一字节表示中止磁头 =&gt; A3 (163) 磁头 正确！</li>
+<li>第二字节低6位表示扇区 =&gt; 3C (00111100) 低6位为 111100 =&gt; 60 扇区 正确！</li>
+<li>第二字节高2位作为高位，第三字节作为低8位 =&gt; 01 柱面，正确！</li>
+</ul>
+</li>
+<li><p><strong>起始LBA （4字节）</strong> =&gt; (80 00 00 00) 起始LBA和起始CHS都描述的是扇区的起始地址，只不过起始LBA是以LBA寻址模式描述。<br>此分区的起始扇区LBA为0x80 （128），使用winhex的Ctrl + G跳转到128号逻辑分区</p>
+</li>
+</ul>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/2008823922.png" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/2008823922-580x225.png" alt="-2008823922"></a></p>
+<blockquote>
+<p>winhex顺便将LBA转换成CHS（0,2,3，正确呀，有木有!） 此处已经是FAT文件系统的VBR。</p>
+<p>插嘴一句，关于LBA和CHS之间的转换，我前面一直没有提，我觉得没啥意思，一是因为CHS寻址太过有限，现在基本都是LBA寻址，LBA到CHS转换属于硬盘和BIOS内部的事情。有兴趣的同学可以google一下。</p>
+<p>只看MBR，我们是无法转换LBA到CHS，因为我们不知道每道扇区数之类的参数。winhex此处之所以能转换是因为读取了VBR中的BPB才完成的，后面讲FAT文件系统中VBR的结构会讲。但对于BIOS来说，知道CHS就OK了，它只要传递给硬盘就能读出对应扇区的数据。这里有一个LBA 转换为CHS的算法：</p>
+<p>LBA 2 CHS</p>
+<p>Temp = LBA / (Sectors per Track)</p>
+<p>Sector = (LBA % (Sectors per Track)) + 1</p>
+<p>Head = Temp % (Number of Heads)</p>
+<p>Cylinder = Temp / (Number of Heads)</p>
+<p>这里面需要获得Sector per Track 和 Number of Heads，也就是每道扇区数。如何获得？如果你的文件系统碰巧是FAT系，在VBR的BPB中正好有这个值，不过可惜的是，FAT中的这个值基本上都是错的。对于现代磁盘来说，每个磁道的扇区数根本就不一样。你非要获得这个值，可以调用int13中断来获取一个可计算CHS的逻辑值。</p>
+<p>int 0x13</p>
+<p>参数： AH 0x8</p>
+<p>参数： DL driver index &lt;= 第一块硬盘的id为0x80</p>
+<p>结果：</p>
+<p>DH &lt;= 最后一个磁头号，换句话说CH内的值 + 1就是磁头的个数</p>
+<p>CX &lt;= 第5位为每道最后一个扇区号，换句话说CX的低5位即为每道扇区数（扇区从1开始） CH的高5 - 15位（即剩下的部分） 为最后一个柱面号，换句话说此值 + 1就为柱面的个数</p>
+<p>PS：这里所说的都是逻辑上的磁头个数，扇区个数以及柱面个数，只是为了方便CHS寻址，物理上并不对应。 因为每磁道扇区的个数都不相同。如何根据LBA读取扇区，CHS读取扇区，请参看<a href="http://en.wikipedia.org/wiki/INT_13H" target="_blank" rel="external">此处</a>。</p>
+</blockquote>
+<ul>
+<li><strong>分区总扇区数 （4字节）</strong> =&gt; (9A 66 00 00) 表示分区是由多少个扇区构成 =&gt; 0x669A (26266) 个扇区，分区的大小为(每扇区512（0x200）字节)：<blockquote>
+<p>26266 * 0x200byte = 13448192byte = 12.8M 正确！<br>好了，分区表讲述完毕，非常简单吧。我们来思考以下几个问题。</p>
+</blockquote>
+</li>
+</ul>
+<ol>
+<li>MBR中分区表只占有4项，所以造成系统最多有4个主分区。</li>
+<li>起始和结束的CHS都用3字节表示，其中10位表示柱面，8位表示磁头，6位表示扇区，所以CHS寻址最大为8.4G（前面已经详细描述过了）</li>
+<li><p>对于超过8.7G的硬盘，MBR中的CHS已经无法表示了，一般使用 FE FF FF 填充（如我disk0的这个分区），BIOS会认为这个无效地址，在normal和large模式下无视这个分区，而在lba模式下读取分区表中的LBA地址从而找到这个分区。 现代一个分区，超过8G很正常，所以现代操作系统基本上都使用的是分区表中的起始LBA而非起始CHS。<br><a href="http://119.28.15.234/wp-content/uploads/2013/02/2007752788.png" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/2007752788.png" alt="-2007752788"></a></p>
+</li>
+<li><p>由于起始LBA和分区扇区数都使用的4字节整数来表示，那么MBR格式一个分区最大为2^32 * 512byte = 2TB而且每个分区的起始地址都应小于2T。举个例子，假设你有一个4T的硬盘，第一分区的起始LBA为0，大小为2TB，那么第二个分区起始地址应在2T之后，用4字节已经无法表示了，所以第二个分区将看不见。不过如果你有3TB的硬盘，第一分区如果为1TB，第二个分区为2TB，那么OK（因为第二个分区起始位置小于2T，可以用4字节表示）但如果第一个分区为2T，那么第二个分区就看不见了。</p>
+</li>
+<li><strong>第三部分：MBR结束标示（2字节）</strong><br>原本没啥说的，但估计你肯定想问为什么是 55 AA ？</li>
+</ol>
+<p>其实我也不知道为什么，我查了挺多资料的，都没找到原因。但55 AA绝对不是乱选的，55 二进制位 0101 0101 ， AA二进制位 1010 1010。<a href="http://stackoverflow.com/questions/11075003/why-55-aa-is-used-as-the-boot-signature-on-ibm-pcs" target="_blank" rel="external">这里</a>有位和我们一样疑惑的哥们在stackoverflow上提问，但答案个人觉得有点牵强。</p>
+<blockquote>
+<p>补充，关于MBR的最后一个问题，扩展分区和逻辑分区到底如何表示？<br>MBR中的分区表已经可以描述最多4个主分区了，其中一个主分区可以作为容器，称之为扩展分区，继续被划分成N个逻辑分区。</p>
+</blockquote>
+<p>MBR中分区表已经包含了扩展分区的LBA，以及总扇区数，根据LBA可以找到扩展分区的起始扇区，而这个起始扇区存放了EBR（Extend Boot Record）描述了扩展分区中的各个逻辑分区。</p>
+<p>我们可以这么理解，将扩展分区当成一块新的硬盘。这个硬盘的第一个扇区也存在一个MBR类似的的东西。 如果我们依然选择MBR当这个新硬盘的引导扇区，那么意味这这个新硬盘还是最多只能有4个分区，我们想让新硬盘中的分区数无限，MBR中数组结构的分区表已经无法满足要求，必须要一个链表结构的分区表。</p>
+<p>怎么办？我们对MBR中的分区表做一点修改，分区表表第一项不变，依然描述一个分区，分区表的第二项如果如同MBR中的扩展分区一样，描述下一个新硬盘。</p>
+<p>（下图展示了MBR，EBR之间的关系）</p>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/13.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/13-580x469.jpg" alt="13"></a></p>
+<p>简单一点描述就是：</p>
+<ol>
+<li>EBR和MBR结构完全相同，EBR中的引导代码一般是446字节的0，EBR分区表中的第三项和第四项全为0，没有使用。</li>
+<li>MBR的分区表中每项的LBA，要么指向主分区的第一扇区，要么指向扩展分区的EBR（EBR就在第一扇区）。</li>
+<li>EBR中分区表中的第一项指向一个逻辑分区的第一扇区，第二项指向下一个EBR （此处的LBA都是相对于EBR的LBA，不是绝对LBA）。</li>
+<li>EBR中的第二项为0的话，表明已经没有下一个逻辑分区了。<br>为了加深理解，我们使用winhex手动定位一下逻辑分区.如图所示，逻辑分区为F：I： J:</li>
+</ol>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/14.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/14-580x164.jpg" alt="14"></a></p>
+<p>winhex打开Disk 2， MBR中的分区表如图： <a href="http://119.28.15.234/wp-content/uploads/2013/02/15.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/15.jpg" alt="15"></a></p>
+<p>扩展分区是最后一项，蓝色部分，我们只关心扩展分区起始LBA： 0x967F8 (616440) 以及扩展分区扇区个数 0x31808。 由此可知扩展分区大小为：</p>
+<blockquote>
+<p>0x31808 * 512byte = 0x6301000 byte = 99MB （验证正确！）<br>使用Ctrl + G 跳转到LBA 0x967F8 (616440) 处：</p>
+</blockquote>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/16.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/16.jpg" alt="16"></a></p>
+<p>如图所示，这是第一个EBR，我用红色和绿色标出了分区表中的第一项和第二项。</p>
+<p>第一项指向第一个逻辑分区，LBA 为0x3F（63），一共0xF000个扇区。</p>
+<blockquote>
+<p>第一个逻辑分区的大小为： 0xF000 <em> 512byte = 0x1E00000 byte = 30MB<br>LBA为 0x3F（63），说明第一个逻辑分区的偏移相对于EBR为 0x3F </em> 512 = 0x7E00 （由于winhex ctrl + g 没法跳转到相对LBA，所以这里我们使用alt + g 跳转到相对偏移 0x 处）</p>
+</blockquote>
+<p><a href="http://119.28.15.234/wp-content/uploads/2013/02/17.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/17-580x220.jpg" alt="17"></a></p>
+<p>已经看到FAT的VBR了，说明我们找到这个分区了！ 接着我们再找下一个分区，首先找下一个EBR，相对于第一个EBR的LBA为0xF03F，相对偏移应该为：</p>
+<blockquote>
+<p>0xF03F * 0x200 = 0x1E07E00<br>alt + g 跳转后，果然找到EBR！ <a href="http://119.28.15.234/wp-content/uploads/2013/02/18.jpg" target="_blank" rel="external"><img src="http://119.28.15.234/wp-content/uploads/2013/02/18-580x104.jpg" alt="18"></a></p>
+</blockquote>
+<p>OK，按照此方法，我们就能找到所有的逻辑分区了。</p>
+<p><strong>GPT 概要介绍</strong></p>
+<p>本来打算详细介绍下GPT，却发现此文写的实在是太长了，只能简单说说，由于MBR 2TB以及最多4个主分区的的限制，GPT出现，GPT对分区数量没有限制，想多少都行（网上有个说法说GPT最多支持128个分区，这种说法不对。128是windows系统的限制），GPT支持的磁盘大小为18EB。（目前来说属于天文数字）关于GPT的更多描述请自行google（GPT我有时间再补完吧）。</p>
+
+      
+    </div>
+
+  </div>
+
+  <div class="article-footer">
+    <div class="article-meta pull-left">
+
+    
+      
+
+    <span class="post-categories">
+      <i class="icon-categories"></i>
+        <a href="/categories/Linux-and-Windows/">Linux and Windows</a>
+    </span>
+    
+
+    
+    
+
+    <span class="post-tags">
+      <i class="icon-tags"></i>
+        <a href="/tags/Linux/">Linux</a><a href="/tags/MBR/">MBR</a><a href="/tags/VFS/">VFS</a><a href="/tags/分区表/">分区表</a><a href="/tags/文件系统/">文件系统</a>
+    </span>
+    
+
+    </div>
+
+    
+  </div>
+</article>
+
+  
+	<div id="comment">
+	
+	
+	<!-- 多说评论框 start -->
+	 <div class="ds-thread" data-thread-key="/archives/28/" data-title="Linux virtual filesystem switch I 磁盘相关概念以及知识" data-url="https://dongxuan.github.io/blog/archives/28/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"novcat"};
+	  (function() {
+	    var ds = document.createElement('script');
+	    ds.type = 'text/javascript';ds.async = true;
+	    ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+	    ds.charset = 'UTF-8';
+	    (document.getElementsByTagName('head')[0] 
+	     || document.getElementsByTagName('body')[0]).appendChild(ds);
+	  })();
+	  </script>
+	<!-- 多说公共JS代码 end -->
+	
+	</div>
+
+
+
+
+    </main>
+
+    <footer class="site-footer">
+  <p class="site-info">
+    Proudly powered by <a href="https://hexo.io/" target="_blank">Hexo</a> and
+    Theme by <a href="https://github.com/CodeDaraW/Hacker" target="_blank">Hacker</a>
+    </br>
+    
+    &copy; 2020 xuan&#39;s blog
+    
+  </p>
+</footer>
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-83658798-1', 'auto');
+    ga('send', 'pageview');
+
+</script>
+
+  </div>
+</div>
+</body>
+</html>

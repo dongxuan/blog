@@ -1,0 +1,362 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>Scheme language | xuan&#39;s blog</title>
+
+  
+
+  
+  <meta name="description" content="Scheme 学习笔记 v0.1">
+  
+
+  
+  
+  <meta name="keywords" content="markdown">
+  
+
+  <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+  <meta property="og:title" content="Scheme language"/>
+
+  <meta property="og:site_name" content="xuan&#39;s blog"/>
+
+  
+  <meta property="og:image" content="/favicon.ico"/>
+  
+
+  <link href="/favicon.ico" rel="icon">
+  <link rel="alternate" href="/atom.xml" title="xuan&#39;s blog" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+
+<body>
+<div class="blog">
+  <div class="content">
+
+    <header>
+  <div class="site-branding">
+    <h1 class="site-title">
+      <a href="/">xuan&#39;s blog</a>
+    </h1>
+    <p class="site-description"></p>
+  </div>
+  <nav class="site-navigation">
+    <ul>
+      
+        <li><a href="/">首页</a></li>
+      
+        <li><a href="/article">文章</a></li>
+      
+        <li><a href="/technical">技术</a></li>
+      
+        <li><a href="/about">关于</a></li>
+      
+    </ul>
+  </nav>
+</header>
+
+    <main class="site-main posts-loop">
+    <article>
+
+  
+    
+    <h3 class="article-title"><span>Scheme language</span></h3>
+    
+  
+
+  <div class="article-top-meta">
+    <span class="posted-on">
+      <a href="/archives/423/" rel="bookmark">
+        <time class="entry-date published" datetime="2013-07-16T05:48:39.000Z">
+          2013-07-16
+        </time>
+      </a>
+    </span>
+  </div>
+
+
+  
+
+  <div class="article-content">
+    <div class="entry">
+      
+        <h2 id="Scheme-学习笔记-v0-1"><a href="#Scheme-学习笔记-v0-1" class="headerlink" title="Scheme 学习笔记 v0.1 "></a>Scheme 学习笔记 v0.1 <a id="more"></a></h2><ul>
+<li>7/16/2013 更新第一版</li>
+</ul>
+<hr>
+<ul>
+<li><p><strong>注释</strong>：</p>
+<ul>
+<li>单行注释： ; XXXXXXXXX ;; XXXX 会输出到Doxygen的文档中 #！也可以注释</li>
+<li>多行注释： #| XXXXXXXXX |#（sx中 )　（scheme中是 #！ ！#）</li>
+</ul>
+</li>
+<li><p><strong>语言块</strong>： （XXX） 用小括号括起来.当然也可以使用[ ] 或者 {} 来替换小括号，但注意匹配。</p>
+</li>
+<li><p><strong>变量</strong>：</p>
+<ul>
+<li>变量定义： (#define x 10)</li>
+<li>变量赋值： (set! x 100)</li>
+<li><p>变量没有类型：</p>
+<pre><code>*   boolean型： #t 和 #f 。 操作符: not 对于非boolean型的变量， (not xxxx) 永远返回 #f ， 换句话说，XXXX永远被当做#t
+</code></pre><ul>
+<li><p>number型：分为四种</p>
+<pre><code>*   整型 （#define x 10）
+</code></pre><ul>
+<li>浮点数 (#define x 10.77777)</li>
+<li>复数 (#define x 2+10i)</li>
+<li><p>分数 (#define x 222/7 )</p>
+<blockquote>
+<p><strong>进制表示： #b(二进制) #o（八进制） #d（十进制，可忽略） #x（十六进制） 如： #b1010</strong><br>number? 可用来判定变量是否为number类型</p>
+</blockquote>
+<ul>
+<li><p>char型： Scheme 中的字符都以#\开头 . 一般分为2类：<br>1.普通字符： #\c =&gt; 字母c ， #\A =&gt; A<br>2.特殊字符： 所谓特殊字符就是无法可视化的表现出来的字符，需要用一个英文单词来描述。如果空格（#\space），换行（#\newline），tab（#\tab)</p>
+<blockquote>
+<p>另外，字符也可以使用ascii码来表示，#\NN, NN代表其ascii码，如#\x20(16进制)表示#\space</p>
+</blockquote>
+<ul>
+<li>字符的操作：</li>
+</ul>
+</li>
+</ul>
+<p>(define c #\c)  ; 定义<br>(char?  c)  =&gt; #t  ;  判定是否是字符<br>; 比较大小    (char=? #\a #\a)  =&gt; #t<br>(char&lt;? #\a #\b)  =&gt; #t<br>(char&gt;=? #\a #\b) =&gt; #f<br>；忽略大小写比较大小    (char-ci=? #\a #\A) =&gt; #t<br>(char-ci&lt;? #\a #\B) =&gt; #t<br>; 大小写转换<br>(char-downcase #\A) =&gt; #\a<br>(char-upcase #\a)   =&gt; #\A`</p>
+</li>
+</ul>
+</li>
+<li><p>symbol型： 上述类型都属于自求值类型，所谓自求值类型是当你引用它时候，它返回的是自身的值。简单理解就是你在控制台输入某个变量，控制台会返回相应的值。<br>而symbol型只是一种标识符，通常用来做枚举。</p>
+<pre><code>*   以&apos;开头的 &apos;xy =&amp;gt; xy
+</code></pre><ul>
+<li>以quote开头的 （两者等价，表示引用过的部分不计算) （quote xy) =&gt; xy</li>
+<li>symbol类型的操作：<br><pre>`(symbol? ‘xyz)  =&gt; #t ；判定是否是symbol类型<br>(eqv? ‘AAA ‘aaa)  =&gt; #f  ; 比较<br>(string-&gt;symbol “aaa”) =&gt; aaa ; string转符号    ; symbol类型做枚举的例子<br>(define (my-fun type)<br>(case  type<br>((create<pre><code>; do something
+</code></pre>)     (my-fun ‘create)`</pre><blockquote>
+<p>symbol是区分大小写的</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li><p>复合类型：</p>
+<pre><code>        *   string: 相关操作(字符串出现引号要用反斜杠转义）
+
+                *   (string-length x)
+*   (string-set! x index #\p) 更改x index处的字符为p
+*   (string-ref x 3) 获取x下标为3的字符索引
+</code></pre></li>
+<li><p>pair：点对</p>
+<pre><code>*   使用 cons来定义：(define x (cons 1 2))
+</code></pre><ul>
+<li>第一个元素称为car，第二个元素称为cdr</li>
+<li>(car x) (cdr x)</li>
+<li>(set-car! x 2) (set-cdr! x 5) 更改元素</li>
+</ul>
+</li>
+<li><p>list：列表</p>
+<pre><code>*   (define x (list 1 2 3 4))
+</code></pre><ul>
+<li>(define x (make-list 5 6) x为5个6的列表</li>
+<li>(list-ref x 5) 取列表第五项</li>
+<li>(list-set! x 5 1) 设置列表第五项</li>
+<li>list的本质就是pair，可以使用car,cdr等操作</li>
+</ul>
+</li>
+<li><p>vector : 向量。和列表很像，但是比列表更节省空间</p>
+<pre><code>*   (define x (vector 1 2 3 4)) 或者 ( define x #(1 2 3 4) )
+</code></pre><ul>
+<li>vector-ref vector-set! vector-length 和 list一样</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><strong>比较</strong></p>
+<pre><code>*   eq? 表示两个参数指向同一对象
+</code></pre><ul>
+<li>eqv? 和eq? 相同</li>
+<li>equals? 两个对象具有相同的数据结构并且内容相同</li>
+</ul>
+</li>
+<li><p><strong>数学运算</strong></p>
+<pre><code>*   max, min, abs, expt （乘方）
+</code></pre><pre>`(max 1 3 4 5)  =&gt; 5
+(min 1 2 4 3)  =&gt; 1
+(abs -1) =&gt; 1`</pre></li>
+<li><p><strong>自定义操作符（函数）</strong></p>
+<pre><code>*   (define fun (lambda ( arg1 arg2 ...) process ) )
+</code></pre><ul>
+<li>简化版 (define (fun (arg1 arg2) process))</li>
+<li>procedure? 判断是否为过程</li>
+</ul>
+</li>
+<li><p><strong>流程控制</strong></p>
+<pre><code>*   (begin xxxxx ) 语句块
+</code></pre><ul>
+<li>(if cond xxxx xxxx2)</li>
+</ul>
+</li>
+<li><p><strong>let相关用法</strong>：<br>define定义的变量是全局的，使用let可以定义局部的变量：<br><pre>`(let       (</pre></p>
+<pre><code>(x  1)
+(y  1)    ; 定义的局部变量
+</code></pre><p>   )<br>   (…..)    ; 中间的过程<br>)</p>
+</li>
+<li><p><strong>object</strong></p>
+<ul>
+<li><p>定义一个类有两种方式：</p>
+<pre><code>*   不继承：(define (opt) (object body))
+</code></pre><ul>
+<li><p>继承： (define (opt) (inherit parent-class body))</p>
+<blockquote>
+<p>换句话说，使用 object 运算或者 inherit运算可以产生一个新对象。</p>
+</blockquote>
+</li>
+<li><p>body中的成员：</p>
+<ul>
+<li>（private member-variable value） 定义私有成员变量</li>
+</ul>
+</li>
+<li>（private (method arg-list)） 定义私有成员函数</li>
+<li>（public member-variable value） 定义公有成员变量</li>
+<li>（public (method arg-list)） 定义公有成员函数</li>
+<li>（public/mutable member-variable value）表示该成员可以被覆盖</li>
+<li>（public/mutable (method arg-list)） 表示该成员函数可以被覆盖</li>
+<li>（public/override member-variable value）inherit中使用，表示该成员可被覆盖</li>
+<li>（public/override (method arg-list)） inherit中使用表示该成员函数被覆盖</li>
+<li><p>this代表object本身，是一个特殊的符号。</p>
+</li>
+<li><p>构造对象，直接调用 object 或者 inherit 即可。</p>
+</li>
+</ul>
+</li>
+<li><p>对象方法的调用：</p>
+<pre><code>*   （send x method arg-list）调用本类的方法
+</code></pre><ul>
+<li><p>（send/super x method arg-list) 调用父类的方法</p>
+</li>
+<li><p>对象成员的获取与修改：</p>
+<ul>
+<li>（get x variable）=&gt; 获取</li>
+</ul>
+</li>
+<li><p>(object-set! object member value) =&gt; 修改</p>
+</li>
+<li><p>inspect函数：修改类的成员却不产生新类（相当于匿名类）。使用方法： (inspect object statements ) → object</p>
+<blockquote>
+<p>statements是用（）扩起来的一段语句，可以在这里重新定义覆盖object里的方法。</p>
+</blockquote>
+</li>
+<li><p>object-members 返回所有public函数的列表。 (object-members object) → list</p>
+</li>
+</ul>
+</li>
+<li><p>delete : 删除对象：</p>
+<pre><code>*   (object-delete! object ) 外部删除
+</code></pre><ul>
+<li><p>(object-delete! ) 内部删除</p>
+</li>
+<li><p>对象的引用：</p>
+<ul>
+<li>平常的使用对象称之为强引用，如果你的引用符号存在，对象就一直存在。</li>
+</ul>
+</li>
+<li><p>使用weak返回对象的弱引用，对对象不再持有。</p>
+<pre><code>*   (weak object ) =&amp;gt; 返回object的弱引用。
+</code></pre><ul>
+<li>(weak object function ) =&gt; function是一个回调函数，当object被销毁的时候function会被调用。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+      
+    </div>
+
+  </div>
+
+  <div class="article-footer">
+    <div class="article-meta pull-left">
+
+    
+      
+
+    <span class="post-categories">
+      <i class="icon-categories"></i>
+        <a href="/categories/Programing-Language/">Programing Language</a>
+    </span>
+    
+
+    
+    
+
+    <span class="post-tags">
+      <i class="icon-tags"></i>
+        <a href="/tags/markdown/">markdown</a>
+    </span>
+    
+
+    </div>
+
+    
+  </div>
+</article>
+
+  
+	<div id="comment">
+	
+	
+	<!-- 多说评论框 start -->
+	 <div class="ds-thread" data-thread-key="/archives/423/" data-title="Scheme language" data-url="https://dongxuan.github.io/blog/archives/423/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"novcat"};
+	  (function() {
+	    var ds = document.createElement('script');
+	    ds.type = 'text/javascript';ds.async = true;
+	    ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+	    ds.charset = 'UTF-8';
+	    (document.getElementsByTagName('head')[0] 
+	     || document.getElementsByTagName('body')[0]).appendChild(ds);
+	  })();
+	  </script>
+	<!-- 多说公共JS代码 end -->
+	
+	</div>
+
+
+
+
+    </main>
+
+    <footer class="site-footer">
+  <p class="site-info">
+    Proudly powered by <a href="https://hexo.io/" target="_blank">Hexo</a> and
+    Theme by <a href="https://github.com/CodeDaraW/Hacker" target="_blank">Hacker</a>
+    </br>
+    
+    &copy; 2020 xuan&#39;s blog
+    
+  </p>
+</footer>
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-83658798-1', 'auto');
+    ga('send', 'pageview');
+
+</script>
+
+  </div>
+</div>
+</body>
+</html>
